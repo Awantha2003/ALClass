@@ -10,14 +10,26 @@ const StudentQuizResults = () => {
   const { user } = useAuth();
   const [quizAttempt, setQuizAttempt] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchQuizAttempt();
+    
+    // Auto-refresh every 30 seconds to check for teacher grades
+    const interval = setInterval(() => {
+      fetchQuizAttempt(true);
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [attemptId]);
 
-  const fetchQuizAttempt = async () => {
+  const fetchQuizAttempt = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const response = await axios.get(`/api/student-questions/quiz/${attemptId}`);
       setQuizAttempt(response.data.quizAttempt);
     } catch (error) {
@@ -26,6 +38,7 @@ const StudentQuizResults = () => {
       navigate('/student-dashboard');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -80,8 +93,20 @@ const StudentQuizResults = () => {
         <div className="card">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Quiz Results</h1>
-            <p className="text-gray-600">{quizAttempt.course.title}</p>
+            <div className="flex justify-between items-center mb-4">
+              <div></div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Quiz Results</h1>
+                <p className="text-gray-600">{quizAttempt.course.title}</p>
+              </div>
+              <button
+                onClick={() => fetchQuizAttempt(true)}
+                disabled={refreshing}
+                className="btn btn-secondary text-sm"
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </div>
 
           {/* Score Summary */}
@@ -114,12 +139,28 @@ const StudentQuizResults = () => {
             </div>
           </div>
 
-          {/* Teacher Feedback */}
-          {quizAttempt.teacherFeedback && (
+          {/* Teacher Grade and Feedback */}
+          {(quizAttempt.teacherGrade || quizAttempt.teacherFeedback) && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Teacher Feedback</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Teacher Review</h3>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-gray-700">{quizAttempt.teacherFeedback}</p>
+                {quizAttempt.teacherGrade && (
+                  <div className="mb-3">
+                    <h4 className="font-medium text-yellow-900 mb-1">Teacher Grade:</h4>
+                    <p className="text-2xl font-bold text-yellow-800">
+                      {quizAttempt.teacherGrade}/{quizAttempt.totalPoints}
+                      <span className="text-sm font-normal ml-2">
+                        ({Math.round((quizAttempt.teacherGrade / quizAttempt.totalPoints) * 100)}%)
+                      </span>
+                    </p>
+                  </div>
+                )}
+                {quizAttempt.teacherFeedback && (
+                  <div>
+                    <h4 className="font-medium text-yellow-900 mb-1">Teacher Feedback:</h4>
+                    <p className="text-yellow-800">{quizAttempt.teacherFeedback}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

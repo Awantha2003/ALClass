@@ -10,6 +10,7 @@ const StudentQuestionManagement = () => {
   const [quizAttempts, setQuizAttempts] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState({
     courseId: '',
     status: ''
@@ -33,9 +34,13 @@ const StudentQuestionManagement = () => {
     }
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const params = new URLSearchParams({
         ...filter
       });
@@ -47,12 +52,17 @@ const StudentQuestionManagement = () => {
       toast.error('Failed to load questions');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const fetchQuizAttempts = async () => {
+  const fetchQuizAttempts = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const params = new URLSearchParams({
         ...filter
       });
@@ -64,6 +74,7 @@ const StudentQuestionManagement = () => {
       toast.error('Failed to load quiz attempts');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -112,8 +123,25 @@ const StudentQuestionManagement = () => {
       <div className="max-w-7xl mx-auto">
         <div className="card">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Questions & Quizzes</h1>
-            <p className="text-gray-600">Manage your questions and view quiz results</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">My Questions & Quizzes</h1>
+                <p className="text-gray-600">Manage your questions and view quiz results</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (activeTab === 'questions') {
+                    fetchQuestions(true);
+                  } else {
+                    fetchQuizAttempts(true);
+                  }
+                }}
+                disabled={refreshing}
+                className="btn btn-secondary"
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
