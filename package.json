@@ -1,0 +1,26 @@
+{
+  "name": "mern-feedback-app",
+  "version": "1.0.0",
+  "description": "MERN Stack Feedback Application with User Authentication and Profile Management",
+  "scripts": {
+    "install-all": "cd Backend && npm install && cd ../Frontend && npm install",
+    "dev": "concurrently \"cd Backend && npm run dev\" \"cd Frontend && npm start\"",
+    "start": "cd Backend && npm start",
+    "build": "cd Frontend && npm run build"
+  },
+  "keywords": [
+    "mern",
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "authentication",
+    "crud",
+    "feedback"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
