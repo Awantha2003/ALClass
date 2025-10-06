@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import EditQuestionModal from './EditQuestionModal';
 
 const StudentQuestionManagement = () => {
   const { user } = useAuth();
@@ -15,6 +16,9 @@ const StudentQuestionManagement = () => {
     courseId: '',
     status: ''
   });
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingQuestion, setDeletingQuestion] = useState(null);
 
   useEffect(() => {
     fetchCourses();
@@ -105,6 +109,42 @@ const StudentQuestionManagement = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleEditQuestion = (question) => {
+    setEditingQuestion(question);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingQuestion(questionId);
+      await axios.delete(`/api/student-questions/${questionId}`);
+      toast.success('Question deleted successfully');
+      fetchQuestions();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete question');
+    } finally {
+      setDeletingQuestion(null);
+    }
+  };
+
+  const handleUpdateQuestion = async (updatedQuestion) => {
+    try {
+      await axios.put(`/api/student-questions/${editingQuestion._id}`, updatedQuestion);
+      toast.success('Question updated successfully');
+      setShowEditModal(false);
+      setEditingQuestion(null);
+      fetchQuestions();
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast.error(error.response?.data?.message || 'Failed to update question');
+    }
   };
 
   if (loading) {
@@ -250,6 +290,23 @@ const StudentQuestionManagement = () => {
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(question.status)}`}>
                             {question.status}
                           </span>
+                          {question.status === 'pending' && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditQuestion(question)}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuestion(question._id)}
+                                disabled={deletingQuestion === question._id}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                              >
+                                {deletingQuestion === question._id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -369,6 +426,19 @@ const StudentQuestionManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Question Modal */}
+      {showEditModal && editingQuestion && (
+        <EditQuestionModal
+          question={editingQuestion}
+          courses={courses}
+          onSave={handleUpdateQuestion}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingQuestion(null);
+          }}
+        />
+      )}
     </div>
   );
 };

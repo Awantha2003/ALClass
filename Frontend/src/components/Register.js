@@ -22,6 +22,8 @@ const Register = () => {
     }
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   
   const { register, user } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +33,80 @@ const Register = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'firstName':
+        if (!value.trim()) {
+          error = 'First name is required';
+        } else if (value.trim().length < 2) {
+          error = 'First name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'First name can only contain letters and spaces';
+        }
+        break;
+      case 'lastName':
+        if (!value.trim()) {
+          error = 'Last name is required';
+        } else if (value.trim().length < 2) {
+          error = 'Last name must be at least 2 characters';
+        } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+          error = 'Last name can only contain letters and spaces';
+        }
+        break;
+      case 'email':
+        if (!value.trim()) {
+          error = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'password':
+        if (!value) {
+          error = 'Password is required';
+        } else if (value.length < 6) {
+          error = 'Password must be at least 6 characters';
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+          error = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+        }
+        break;
+      case 'confirmPassword':
+        if (!value) {
+          error = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          error = 'Passwords do not match';
+        }
+        break;
+      case 'phone':
+        if (value && !/^[\+]?[1-9][\d]{0,15}$/.test(value.replace(/[\s\-\(\)]/g, ''))) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+      case 'dateOfBirth':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          const age = today.getFullYear() - birthDate.getFullYear();
+          if (age < 13) {
+            error = 'You must be at least 13 years old';
+          } else if (age > 120) {
+            error = 'Please enter a valid birth date';
+          }
+        }
+        break;
+      case 'address.zipCode':
+        if (value && !/^[a-zA-Z0-9\s\-]{3,10}$/.test(value)) {
+          error = 'Please enter a valid zip/postal code';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,13 +126,72 @@ const Register = () => {
         [name]: value
       });
     }
+    
+    // Live validation - validate as user types
+    if (touched[name]) {
+      const error = validateField(name, value);
+      setErrors({
+        ...errors,
+        [name]: error
+      });
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched({
+      ...touched,
+      [name]: true
+    });
+    
+    const error = validateField(name, value);
+    setErrors({
+      ...errors,
+      [name]: error
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+    // Validate all required fields
+    const requiredFields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+    const newErrors = {};
+    
+    requiredFields.forEach(field => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+    
+    // Validate optional fields if they have values
+    const optionalFields = ['phone', 'dateOfBirth', 'address.zipCode'];
+    optionalFields.forEach(field => {
+      if (formData[field] || formData.address?.zipCode) {
+        const value = field.startsWith('address.') ? formData.address[field.split('.')[1]] : formData[field];
+        const error = validateField(field, value);
+        if (error) {
+          newErrors[field] = error;
+        }
+      }
+    });
+    
+    setErrors(newErrors);
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      phone: true,
+      dateOfBirth: true,
+      'address.zipCode': true
+    });
+    
+    // If there are validation errors, don't submit
+    if (Object.keys(newErrors).length > 0) {
+      toast.error('Please fix the errors below');
       return;
     }
 
@@ -99,10 +234,14 @@ const Register = () => {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.firstName && errors.firstName ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Enter your first name"
                     required
                   />
+                  {touched.firstName && errors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -112,10 +251,14 @@ const Register = () => {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.lastName && errors.lastName ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Enter your last name"
                     required
                   />
+                  {touched.lastName && errors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -126,10 +269,14 @@ const Register = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="form-input"
+                  onBlur={handleBlur}
+                  className={`form-input ${touched.email && errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="Enter your email address"
                   required
                 />
+                {touched.email && errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -140,11 +287,15 @@ const Register = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.password && errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Create a password"
                     required
                     minLength="6"
                   />
+                  {touched.password && errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -154,11 +305,15 @@ const Register = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Confirm your password"
                     required
                     minLength="6"
                   />
+                  {touched.confirmPassword && errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                  )}
                 </div>
               </div>
 
@@ -184,9 +339,13 @@ const Register = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.phone && errors.phone ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Enter your phone number"
                   />
+                  {touched.phone && errors.phone && (
+                    <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -196,8 +355,12 @@ const Register = () => {
                     name="dateOfBirth"
                     value={formData.dateOfBirth}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.dateOfBirth && errors.dateOfBirth ? 'border-red-500 focus:ring-red-500' : ''}`}
                   />
+                  {touched.dateOfBirth && errors.dateOfBirth && (
+                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -254,9 +417,13 @@ const Register = () => {
                     name="address.zipCode"
                     value={formData.address.zipCode}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched['address.zipCode'] && errors['address.zipCode'] ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Enter your zip code"
                   />
+                  {touched['address.zipCode'] && errors['address.zipCode'] && (
+                    <p className="mt-1 text-sm text-red-600">{errors['address.zipCode']}</p>
+                  )}
                 </div>
                 
                 <div>

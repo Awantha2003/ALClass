@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
-import { toast } from 'react-toastify';
 
-const StudentQuestionCreation = () => {
-  const { user } = useAuth();
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
-  
+const EditQuestionModal = ({ question, courses, onSave, onClose }) => {
   const [formData, setFormData] = useState({
     question: '',
     options: [
@@ -20,28 +10,14 @@ const StudentQuestionCreation = () => {
       { text: '', isCorrect: false }
     ],
     explanation: '',
-    courseId: '',
     difficulty: 'medium',
-    tags: '',
+    tags: [],
     isAnonymous: false
   });
-
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/courses');
-      setCourses(response.data.courses);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      toast.error('Failed to load courses');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [tagInput, setTagInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const validateField = (name, value) => {
     let error = '';
@@ -54,22 +30,9 @@ const StudentQuestionCreation = () => {
           error = 'Question must be at least 10 characters long';
         }
         break;
-      case 'courseId':
-        if (!value) {
-          error = 'Please select a course';
-        }
-        break;
       case 'explanation':
         if (value && value.trim().length < 10) {
           error = 'Explanation must be at least 10 characters long';
-        }
-        break;
-      case 'tags':
-        if (value) {
-          const tagArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-          if (tagArray.length > 10) {
-            error = 'Maximum 10 tags allowed';
-          }
         }
         break;
       default:
@@ -93,6 +56,24 @@ const StudentQuestionCreation = () => {
     }
     return '';
   };
+
+  useEffect(() => {
+    if (question) {
+      setFormData({
+        question: question.question || '',
+        options: question.options || [
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false }
+        ],
+        explanation: question.explanation || '',
+        difficulty: question.difficulty || 'medium',
+        tags: question.tags || [],
+        isAnonymous: question.isAnonymous || false
+      });
+    }
+  }, [question]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -126,11 +107,10 @@ const StudentQuestionCreation = () => {
   };
 
   const handleOptionChange = (index, field, value) => {
-    const newOptions = [...formData.options];
-    newOptions[index] = {
-      ...newOptions[index],
-      [field]: field === 'isCorrect' ? value : value
-    };
+    const newOptions = formData.options.map((option, i) => 
+      i === index ? { ...option, [field]: value } : option
+    );
+    
     setFormData(prev => ({
       ...prev,
       options: newOptions
@@ -157,12 +137,28 @@ const StudentQuestionCreation = () => {
 
   const removeOption = (index) => {
     if (formData.options.length > 2) {
-      const newOptions = formData.options.filter((_, i) => i !== index);
       setFormData(prev => ({
         ...prev,
-        options: newOptions
+        options: prev.options.filter((_, i) => i !== index)
       }));
     }
+  };
+
+  const handleTagAdd = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const handleTagRemove = (tagToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -170,7 +166,7 @@ const StudentQuestionCreation = () => {
     
     // Validate all fields
     const newErrors = {};
-    const fieldsToValidate = ['question', 'courseId', 'explanation', 'tags'];
+    const fieldsToValidate = ['question', 'explanation'];
     
     fieldsToValidate.forEach(field => {
       const error = validateField(field, formData[field]);
@@ -188,106 +184,46 @@ const StudentQuestionCreation = () => {
     setErrors(newErrors);
     setTouched({
       question: true,
-      courseId: true,
       explanation: true,
-      tags: true,
       options: true
     });
     
     // If there are validation errors, don't submit
     if (Object.keys(newErrors).length > 0) {
-      toast.error('Please fix the errors below');
       return;
     }
 
+    setLoading(true);
     try {
-      setSubmitting(true);
-      
       const validOptions = formData.options.filter(option => option.text.trim());
-      const submitData = {
+      await onSave({
         ...formData,
-        options: validOptions,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      };
-
-      await axios.post('/api/student-questions', submitData);
-      
-      toast.success('Question created successfully! It will be reviewed by your teacher.');
-      
-      // Reset form
-      setFormData({
-        question: '',
-        options: [
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false }
-        ],
-        explanation: '',
-        courseId: '',
-        difficulty: 'medium',
-        tags: '',
-        isAnonymous: false
+        options: validOptions
       });
-      
     } catch (error) {
-      console.error('Error creating question:', error);
-      toast.error(error.response?.data?.message || 'Failed to create question');
+      console.error('Error saving question:', error);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <h3 className="text-xl font-semibold text-gray-700">Loading courses...</h3>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen gradient-bg py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="card">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Question</h1>
-            <p className="text-gray-600">Create a multiple choice question for your course</p>
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div className="mt-3">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Edit Question</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Course Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Course *
-              </label>
-              <select
-                name="courseId"
-                value={formData.courseId}
-                onChange={handleInputChange}
-                onBlur={handleBlur}
-                required
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  touched.courseId && errors.courseId 
-                    ? 'border-red-500 focus:ring-red-500' 
-                    : 'border-gray-300 focus:ring-primary-500'
-                }`}
-              >
-                <option value="">Select a course</option>
-                {courses.map(course => (
-                  <option key={course._id} value={course._id}>
-                    {course.title} - {course.subject}
-                  </option>
-                ))}
-              </select>
-              {touched.courseId && errors.courseId && (
-                <p className="mt-1 text-sm text-red-600">{errors.courseId}</p>
-              )}
-            </div>
-
             {/* Question */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -298,14 +234,14 @@ const StudentQuestionCreation = () => {
                 value={formData.question}
                 onChange={handleInputChange}
                 onBlur={handleBlur}
-                required
-                rows={4}
+                rows={3}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
                   touched.question && errors.question 
                     ? 'border-red-500 focus:ring-red-500' 
                     : 'border-gray-300 focus:ring-primary-500'
                 }`}
                 placeholder="Enter your question here..."
+                required
               />
               {touched.question && errors.question && (
                 <p className="mt-1 text-sm text-red-600">{errors.question}</p>
@@ -315,7 +251,7 @@ const StudentQuestionCreation = () => {
             {/* Options */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Answer Options *
+                Options *
               </label>
               {touched.options && errors.options && (
                 <p className="mb-2 text-sm text-red-600">{errors.options}</p>
@@ -333,8 +269,8 @@ const StudentQuestionCreation = () => {
                       type="text"
                       value={option.text}
                       onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
-                      placeholder={`Option ${index + 1}`}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
                     />
                     {formData.options.length > 2 && (
                       <button
@@ -349,23 +285,22 @@ const StudentQuestionCreation = () => {
                     )}
                   </div>
                 ))}
+                {formData.options.length < 6 && (
+                  <button
+                    type="button"
+                    onClick={addOption}
+                    className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                  >
+                    + Add Option
+                  </button>
+                )}
               </div>
-              
-              {formData.options.length < 6 && (
-                <button
-                  type="button"
-                  onClick={addOption}
-                  className="mt-3 text-primary-600 hover:text-primary-800 font-medium"
-                >
-                  + Add Option
-                </button>
-              )}
             </div>
 
             {/* Explanation */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Explanation (Optional)
+                Explanation
               </label>
               <textarea
                 name="explanation"
@@ -385,48 +320,65 @@ const StudentQuestionCreation = () => {
               )}
             </div>
 
-            {/* Difficulty and Tags */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty
-                </label>
-                <select
-                  name="difficulty"
-                  value={formData.difficulty}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
+            {/* Difficulty */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Difficulty
+              </label>
+              <select
+                name="difficulty"
+                value={formData.difficulty}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags (comma-separated)
-                </label>
+            {/* Tags */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tags
+              </label>
+              <div className="flex space-x-2 mb-2">
                 <input
                   type="text"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                    touched.tags && errors.tags 
-                      ? 'border-red-500 focus:ring-red-500' 
-                      : 'border-gray-300 focus:ring-primary-500'
-                  }`}
-                  placeholder="e.g., math, algebra, equations"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleTagAdd())}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Add a tag..."
                 />
-                {touched.tags && errors.tags && (
-                  <p className="mt-1 text-sm text-red-600">{errors.tags}</p>
-                )}
+                <button
+                  type="button"
+                  onClick={handleTagAdd}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagRemove(tag)}
+                      className="ml-1 text-primary-600 hover:text-primary-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
             </div>
 
-            {/* Anonymous Option */}
+            {/* Anonymous */}
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -435,26 +387,26 @@ const StudentQuestionCreation = () => {
                 onChange={handleInputChange}
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
-              <label className="ml-2 text-sm text-gray-700">
+              <label className="ml-2 block text-sm text-gray-700">
                 Submit anonymously
               </label>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end space-x-4">
+            {/* Buttons */}
+            <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={() => window.history.back()}
-                className="btn btn-secondary"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={submitting}
-                className="btn btn-primary"
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
               >
-                {submitting ? 'Creating...' : 'Create Question'}
+                {loading ? 'Updating...' : 'Update Question'}
               </button>
             </div>
           </form>
@@ -464,4 +416,4 @@ const StudentQuestionCreation = () => {
   );
 };
 
-export default StudentQuestionCreation;
+export default EditQuestionModal;

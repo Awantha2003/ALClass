@@ -18,6 +18,8 @@ const CourseManagement = () => {
     startDate: '',
     endDate: ''
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   useEffect(() => {
     fetchCourses();
@@ -43,15 +45,121 @@ const CourseManagement = () => {
     }
   };
 
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'title':
+        if (!value.trim()) {
+          error = 'Course title is required';
+        } else if (value.trim().length < 3) {
+          error = 'Title must be at least 3 characters long';
+        }
+        break;
+      case 'description':
+        if (!value.trim()) {
+          error = 'Description is required';
+        } else if (value.trim().length < 10) {
+          error = 'Description must be at least 10 characters long';
+        }
+        break;
+      case 'subject':
+        if (!value.trim()) {
+          error = 'Subject is required';
+        } else if (value.trim().length < 2) {
+          error = 'Subject must be at least 2 characters long';
+        }
+        break;
+      case 'startDate':
+        if (!value) {
+          error = 'Start date is required';
+        } else {
+          const startDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (startDate < today) {
+            error = 'Start date cannot be in the past';
+          }
+        }
+        break;
+      case 'endDate':
+        if (!value) {
+          error = 'End date is required';
+        } else if (formData.startDate) {
+          const startDate = new Date(formData.startDate);
+          const endDate = new Date(value);
+          if (endDate <= startDate) {
+            error = 'End date must be after start date';
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
+    });
+    
+    // Live validation - validate as user types
+    if (touched[name]) {
+      const error = validateField(name, value);
+      setErrors({
+        ...errors,
+        [name]: error
+      });
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched({
+      ...touched,
+      [name]: true
+    });
+    
+    const error = validateField(name, value);
+    setErrors({
+      ...errors,
+      [name]: error
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const newErrors = {};
+    const fieldsToValidate = ['title', 'description', 'subject', 'startDate', 'endDate'];
+    
+    fieldsToValidate.forEach(field => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+    
+    setErrors(newErrors);
+    setTouched({
+      title: true,
+      description: true,
+      subject: true,
+      startDate: true,
+      endDate: true
+    });
+    
+    // If there are validation errors, don't submit
+    if (Object.keys(newErrors).length > 0) {
+      toast.error('Please fix the errors below');
+      return;
+    }
+    
     console.log('Form submitted with data:', formData);
     
     try {
@@ -238,10 +346,14 @@ const CourseManagement = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.title && errors.title ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="Enter course title"
                     required
                   />
+                  {touched.title && errors.title && (
+                    <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -251,10 +363,14 @@ const CourseManagement = () => {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.subject && errors.subject ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="e.g., Mathematics, Science, English"
                     required
                   />
+                  {touched.subject && errors.subject && (
+                    <p className="mt-1 text-sm text-red-600">{errors.subject}</p>
+                  )}
                 </div>
               </div>
 
@@ -264,11 +380,15 @@ const CourseManagement = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  className="form-input"
+                  onBlur={handleBlur}
+                  className={`form-input ${touched.description && errors.description ? 'border-red-500 focus:ring-red-500' : ''}`}
                   rows="4"
                   placeholder="Describe what students will learn in this course"
                   required
                 />
+                {touched.description && errors.description && (
+                  <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -279,8 +399,12 @@ const CourseManagement = () => {
                     name="startDate"
                     value={formData.startDate}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.startDate && errors.startDate ? 'border-red-500 focus:ring-red-500' : ''}`}
                   />
+                  {touched.startDate && errors.startDate && (
+                    <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -290,8 +414,12 @@ const CourseManagement = () => {
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleChange}
-                    className="form-input"
+                    onBlur={handleBlur}
+                    className={`form-input ${touched.endDate && errors.endDate ? 'border-red-500 focus:ring-red-500' : ''}`}
                   />
+                  {touched.endDate && errors.endDate && (
+                    <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
+                  )}
                 </div>
               </div>
 

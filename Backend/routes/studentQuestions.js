@@ -300,4 +300,105 @@ router.get('/quiz/:attemptId', auth, async (req, res) => {
   }
 });
 
+// Update a student question
+router.put('/:questionId', auth, async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const { question, options, explanation, difficulty, tags, isAnonymous } = req.body;
+
+    // Validate that user is a student
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can update questions' });
+    }
+
+    // Find the question
+    const studentQuestion = await StudentQuestion.findById(questionId);
+    if (!studentQuestion) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    // Check if the question belongs to the student
+    if (studentQuestion.student.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only update your own questions' });
+    }
+
+    // Check if question is already reviewed
+    if (studentQuestion.status !== 'pending') {
+      return res.status(400).json({ message: 'Cannot update questions that have been reviewed' });
+    }
+
+    // Validate required fields
+    if (!question || !options) {
+      return res.status(400).json({ message: 'Question and options are required' });
+    }
+
+    // Validate options
+    if (!Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ message: 'At least 2 options are required' });
+    }
+
+    // Check if at least one option is marked as correct
+    const hasCorrectOption = options.some(option => option.isCorrect);
+    if (!hasCorrectOption) {
+      return res.status(400).json({ message: 'At least one option must be marked as correct' });
+    }
+
+    // Update the question
+    studentQuestion.question = question;
+    studentQuestion.options = options;
+    studentQuestion.explanation = explanation;
+    studentQuestion.difficulty = difficulty;
+    studentQuestion.tags = tags || [];
+    studentQuestion.isAnonymous = isAnonymous;
+    studentQuestion.updatedAt = new Date();
+
+    await studentQuestion.save();
+    await studentQuestion.populate('course', 'title subject');
+
+    res.json({
+      message: 'Question updated successfully',
+      question: studentQuestion
+    });
+  } catch (error) {
+    console.error('Error updating question:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a student question
+router.delete('/:questionId', auth, async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    // Validate that user is a student
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ message: 'Only students can delete questions' });
+    }
+
+    // Find the question
+    const studentQuestion = await StudentQuestion.findById(questionId);
+    if (!studentQuestion) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    // Check if the question belongs to the student
+    if (studentQuestion.student.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only delete your own questions' });
+    }
+
+    // Check if question is already reviewed
+    if (studentQuestion.status !== 'pending') {
+      return res.status(400).json({ message: 'Cannot delete questions that have been reviewed' });
+    }
+
+    // Delete the question
+    await StudentQuestion.findByIdAndDelete(questionId);
+
+    res.json({ message: 'Question deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting question:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
