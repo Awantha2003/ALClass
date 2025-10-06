@@ -1,22 +1,27 @@
-# TestFeedback - Educational Platform
+# ALClass - Educational Platform (Client Project)
 
-A comprehensive MERN stack application for educational feedback and assessment, featuring student question creation and teacher review system.
+A comprehensive MERN stack application for educational feedback and assessment, featuring student question creation, teacher review system, and interactive MCQ quizzes. This is a client project developed for educational institutions to enhance learning through collaborative question creation and assessment.
 
 ## 🚀 Features
 
 ### For Students
-- **Question Creation**: Create multiple choice questions with explanations
+- **Question Creation**: Create multiple choice questions with explanations and live validation
+- **Question Management**: Update and delete your own questions (pending status only)
 - **MCQ Quizzes**: Take interactive quizzes with real-time feedback
-- **Progress Tracking**: View quiz history and performance
+- **Progress Tracking**: View quiz history and performance analytics
 - **Course Management**: Access course materials and assignments
 - **Anonymous Submission**: Option to submit questions anonymously
+- **Real-time Validation**: Live form validation with immediate feedback
+- **Interactive UI**: Modern, responsive interface with smooth animations
 
 ### For Teachers
-- **Question Review**: Review and approve/reject student-created questions
-- **Quiz Grading**: Grade student quiz attempts with detailed feedback
+- **Question Review**: Review and approve/reject student-created questions with detailed feedback
+- **Quiz Grading**: Grade student quiz attempts with custom scoring and feedback
 - **Course Management**: Create and manage courses, lessons, and assignments
 - **Analytics Dashboard**: View student performance and statistics
 - **Real-time Feedback**: Provide instant feedback to students
+- **Question Management**: Bulk operations and filtering for efficient review
+- **Performance Tracking**: Monitor student engagement and question quality
 
 ## 🛠️ Technology Stack
 
@@ -25,24 +30,37 @@ A comprehensive MERN stack application for educational feedback and assessment, 
 - **Authentication**: JWT (JSON Web Tokens)
 - **Database**: MongoDB Atlas
 - **Styling**: Tailwind CSS with custom components
+- **Validation**: Real-time form validation with debouncing
+- **State Management**: React Context API
+- **HTTP Client**: Axios for API communication
+- **UI Components**: Custom React components with responsive design
 
 ## 📁 Project Structure
 
 ```
-TestFeedback/
+ALClass/
 ├── Backend/
-│   ├── models/           # Database models
-│   ├── routes/           # API routes
-│   ├── middleware/       # Authentication middleware
-│   ├── uploads/          # File uploads
-│   └── server.js         # Main server file
+│   ├── models/                    # Database models (User, Course, StudentQuestion, etc.)
+│   ├── routes/                    # API routes (auth, student-questions, teacher-questions)
+│   ├── middleware/                # Authentication middleware
+│   ├── uploads/                   # File uploads (announcements, assignments, questions)
+│   └── server.js                  # Main server file
 ├── Frontend/
 │   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── contexts/     # React contexts
-│   │   └── App.js        # Main app component
-│   └── public/           # Static files
-└── README.md
+│   │   ├── components/            # React components
+│   │   │   ├── StudentQuestionCreation.js    # Question creation form
+│   │   │   ├── StudentQuestionManagement.js  # Question management
+│   │   │   ├── EditQuestionModal.js          # Question editing modal
+│   │   │   ├── TeacherQuestionReview.js      # Teacher review interface
+│   │   │   ├── StudentMCQQuiz.js             # Quiz taking interface
+│   │   │   └── ...                           # Other components
+│   │   ├── contexts/              # React contexts (AuthContext)
+│   │   └── App.js                 # Main app component
+│   └── public/                    # Static files
+├── package.json                   # Root package configuration
+├── start-dev.bat                  # Windows development script
+├── start-dev.sh                   # Linux/Mac development script
+└── README.md                      # Project documentation
 ```
 
 ## 🚀 Getting Started
@@ -103,6 +121,8 @@ TestFeedback/
 - `POST /api/student-questions` - Create a question
 - `GET /api/student-questions/my-questions` - Get student's questions
 - `GET /api/student-questions/course/:courseId` - Get course questions
+- `PUT /api/student-questions/:questionId` - Update a question (students only)
+- `DELETE /api/student-questions/:questionId` - Delete a question (students only)
 - `POST /api/student-questions/quiz/start` - Start a quiz
 - `POST /api/student-questions/quiz/:attemptId/submit` - Submit quiz
 
@@ -114,29 +134,59 @@ TestFeedback/
 
 ## 🎯 Key Features Explained
 
-### Student Question Creation
-Students can create comprehensive multiple choice questions with:
-- Up to 6 answer options
-- Correct answer marking
-- Detailed explanations
+### Student Question Creation & Management
+Students can create and manage comprehensive multiple choice questions with:
+- Up to 6 answer options with real-time validation
+- Correct answer marking with visual indicators
+- Detailed explanations with character limits
 - Difficulty levels (Easy, Medium, Hard)
-- Tags for categorization
+- Tags for categorization (up to 10 tags)
 - Anonymous submission option
+- **Live Validation**: Real-time form validation with immediate feedback
+- **CRUD Operations**: Create, read, update, and delete questions (pending status only)
+- **Interactive UI**: Modern modal-based editing interface
 
 ### Teacher Review System
 Teachers can:
-- Review all student-created questions
-- Approve or reject questions with feedback
-- Set points and difficulty levels
-- Provide detailed feedback to students
+- Review all student-created questions with filtering and pagination
+- Approve or reject questions with detailed feedback
+- Set points and difficulty levels for questions
+- Provide comprehensive feedback to students
 - Grade quiz attempts with custom scoring
+- Monitor question quality and student engagement
+- Track performance metrics and analytics
 
 ### Interactive Quiz System
-- Real-time quiz taking experience
-- Timer tracking
-- Progress indicators
-- Immediate feedback
-- Detailed results with explanations
+- Real-time quiz taking experience with smooth transitions
+- Timer tracking and progress indicators
+- Immediate feedback and validation
+- Detailed results with explanations and analytics
+- Performance tracking and history
+- Responsive design for all devices
+
+## 🆕 Latest Features (Client Project Updates)
+
+### Frontend Enhancements
+- **Live Form Validation**: Real-time validation with debouncing for optimal performance
+- **Student Question CRUD**: Complete create, read, update, delete functionality
+- **Modal-based Editing**: Modern editing interface with smooth animations
+- **Enhanced UX**: Immediate feedback and error handling
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Performance Optimization**: Debounced validation and efficient state management
+
+### Backend Improvements
+- **RESTful API**: Complete CRUD operations for student questions
+- **Authentication**: Secure JWT-based authentication system
+- **Authorization**: Role-based access control (students vs teachers)
+- **Data Validation**: Server-side validation with comprehensive error handling
+- **Database Optimization**: Efficient queries and data relationships
+
+### Client Project Benefits
+- **Educational Institution Ready**: Designed for schools and universities
+- **Scalable Architecture**: Can handle multiple courses and users
+- **Modern Technology Stack**: Built with latest web technologies
+- **Comprehensive Documentation**: Detailed setup and usage instructions
+- **Professional UI/UX**: Clean, intuitive interface for all users
 
 ## 🔧 Development
 
@@ -151,22 +201,40 @@ cd Frontend
 npm start
 ```
 
+### Quick Start (Windows)
+```bash
+# Use the provided batch file
+start-dev.bat
+```
+
+### Quick Start (Linux/Mac)
+```bash
+# Use the provided shell script
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
 ### Database Models
-- **User**: Student and teacher accounts
-- **Course**: Course information and enrollment
-- **StudentQuestion**: Student-created questions
-- **StudentQuizAttempt**: Quiz attempts and scores
-- **Assignment**: Course assignments
-- **Submission**: Student submissions
+- **User**: Student and teacher accounts with role-based access
+- **Course**: Course information and enrollment management
+- **StudentQuestion**: Student-created questions with status tracking
+- **StudentQuizAttempt**: Quiz attempts and scores with analytics
+- **Assignment**: Course assignments and submissions
+- **Submission**: Student submissions with grading system
+- **Announcement**: Course announcements and notifications
+- **Lesson**: Course lessons and materials
 
 ## 📱 User Interface
 
 The application features a modern, responsive design with:
-- Clean and intuitive navigation
-- Mobile-friendly interface
-- Real-time updates
-- Interactive components
+- Clean and intuitive navigation with role-based menus
+- Mobile-friendly interface with responsive breakpoints
+- Real-time updates and live validation feedback
+- Interactive components with smooth animations
 - Professional styling with Tailwind CSS
+- Dark/light theme support (ready for implementation)
+- Accessibility features and keyboard navigation
+- Loading states and error handling
 
 ## 🤝 Contributing
 
@@ -180,25 +248,35 @@ The application features a modern, responsive design with:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👨‍💻 Author
+## 👨‍💻 Author & Client
 
-**Awantha Imesha**
+**Awantha Imesha** - Project Developer & Client
 - Email: awanthaimesh65@gmail.com
 - GitHub: [@Awantha2003](https://github.com/Awantha2003)
+- Role: Full-stack Developer & Educational Platform Client
+- Project Type: Client Project for Educational Institution
 
 ## 🙏 Acknowledgments
 
-- React.js community for excellent documentation
-- MongoDB for robust database solutions
-- Tailwind CSS for beautiful styling
-- All contributors and testers
+- React.js community for excellent documentation and support
+- MongoDB for robust database solutions and scalability
+- Tailwind CSS for beautiful, responsive styling
+- Express.js community for backend framework excellence
+- All contributors, testers, and educational institutions
+- Open source community for continuous inspiration
 
-## 📞 Support
+## 📞 Support & Contact
 
-If you have any questions or need help, please contact:
-- Email: awanthaimesh65@gmail.com
-- Create an issue in the GitHub repository
+For technical support, feature requests, or general inquiries:
+- **Email**: awanthaimesh65@gmail.com
+- **GitHub Issues**: [Create an issue](https://github.com/Awantha2003/ALClass/issues)
+- **Project Repository**: [ALClass on GitHub](https://github.com/Awantha2003/ALClass)
+
+### Client Project Information
+This is a client project developed for educational institutions. For commercial use or licensing inquiries, please contact the developer directly.
 
 ---
 
 **Happy Learning! 🎓**
+
+*ALClass - Empowering Education Through Technology*
